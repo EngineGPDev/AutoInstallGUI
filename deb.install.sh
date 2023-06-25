@@ -8,29 +8,13 @@ install_enginegp() {
     count=0
 
     # Список пакетов #1 для установки
-    packages=(ca-certificates apt-transport-https software-properties-common curl lsb-release ufw net-tools memcached zip unzip bc)
-
-    # Цикл по списку пакетов
-    for package in "${packages[@]}"
-    do
-        # Установка пакета
-        sudo apt-get install $package -y >> "$(dirname "$0")/enginegp_install.log" 2>&1
-
-        # Общее количество пакетов
-        total=${#packages[@]}
-
-        # Увеличение счетчика
-        count=$((count+1))
-
-        # Вычисление процента выполнения
-        percent=$((count*100/total))
-
-        # Отображение прогресс бара
-        echo $percent
-    done | dialog --title "Installing EngineGP" --gauge "Step 1 of 3\nSetting up the operating system" 10 70 0
-
+    packages_one=(ca-certificates apt-transport-https software-properties-common curl lsb-release ufw net-tools memcached zip unzip bc)
+    
     # Список пакетов #2 для установки
-    packages=(ca-certificates apt-transport-https software-properties-common curl lsb-release ufw net-tools memcached zip unzip bc)
+    packages_two=(php8.1 php8.1-cli php8.1-memcache php8.1-mysqli php8.1-xml php8.1-mbstring php8.1-gd php8.1-imagick php8.1-zip php8.1-curl php8.1-ssh2 php8.1-xml php8.1-common apache2 apache2-utils)
+    
+    # Итоговый список пакетов для установки
+    packages=( "${packages_one[@]}" "${packages_two[@]}" )
 
     # Цикл по списку пакетов
     for package in "${packages[@]}"
@@ -48,8 +32,11 @@ install_enginegp() {
         percent=$((count*100/total))
 
         # Отображение прогресс бара
+        echo "XXX"
+        echo "Installing $package ($count of $total)"
+        echo "XXX"
         echo $percent
-    done | dialog --title "Installing EngineGP" --gauge "Step 2 of 3\nConfiguring the web server" 10 70 0
+    done | dialog --title "Installing EngineGP" --gauge "Start of installation" 10 70 0
 }
 
 # Функция для настройки локации
