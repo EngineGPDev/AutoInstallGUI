@@ -8,10 +8,10 @@ echo "
 "
 
 # Обновление таблиц
-apt update -y >> "$(dirname "$0")/enginegp_install.log" 2>&1
+apt-get update -y >> "$(dirname "$0")/enginegp_install.log" 2>&1
 
 # Обновление пакетов
-apt upgrade -y >> "$(dirname "$0")/enginegp_install.log" 2>&1
+apt-get upgrade -y >> "$(dirname "$0")/enginegp_install.log" 2>&1
 
 # Установка необходимых пакетоа
 apt-get install sudo whiptail dialog dos2unix -y >> "$(dirname "$0")/enginegp_install.log" 2>&1

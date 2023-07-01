@@ -22,7 +22,7 @@ install_enginegp() {
     packages_one=(lsb-release software-properties-common net-tools curl ufw memcached zip unzip bc)
     
     # Список пакетов #2 для установки
-    packages_two=(php8.1 php8.1-cli php8.1-memcache php8.1-mysqli php8.1-xml php8.1-mbstring php8.1-gd php8.1-imagick php8.1-zip php8.1-curl php8.1-ssh2 php8.1-xml php8.1-common apache2 apache2-utils nginx)
+    packages_two=(php8.1 php8.1-cli php8.1-memcache php8.1-memcached php8.1-mysqli php8.1-xml php8.1-mbstring php8.1-gd php8.1-imagick php8.1-zip php8.1-curl php8.1-ssh2 php8.1-xml php8.1-common apache2 apache2-utils nginx mariadb-server)
     
     # Итоговый список пакетов для установки
     packages=( "${packages_one[@]}" "${packages_two[@]}" )
@@ -104,8 +104,8 @@ install_enginegp() {
     for package in "${packages[@]}"
     do
         # Проверяем установку
-        if ! dpkg -l | grep -q php && if dpkg -l | grep -q curl; then
-            if [ $count -ge 9 ]; then
+        if ! dpkg -l | grep -q php && dpkg -l | grep -q curl; then
+            if [ $count -ge 10 ]; then
                 # Добавляем репозиторий php
                 sudo curl -sSL https://packages.sury.org/php/README.txt | sudo bash -x >> "$(dirname "$0")/enginegp_install.log" 2>&1
 
@@ -171,13 +171,21 @@ install_enginegp() {
         fi
 
         # Устанавливаем панель
-        if [ ! -d /var/enginegp/ ] && [ $count -ge 9 ]; then
+        if [ ! -d /var/enginegp/ ] && [ $count -ge 10 ]; then
             if dpkg -l | grep -q curl && dpkg -l | grep -q unzip; then
                 # Закачиваем и распаковываем панель
                 sudo curl -sSL -o /var/enginegp.zip $enginegp_url >> "$(dirname "$0")/enginegp_install.log" 2>&1
                 sudo unzip /var/enginegp.zip -d /var/ >> "$(dirname "$0")/enginegp_install.log" 2>&1
                 sudo mv /var/EngineGP-* /var/enginegp >> "$(dirname "$0")/enginegp_install.log" 2>&1
                 sudo rm /var/enginegp.zip >> "$(dirname "$0")/enginegp_install.log" 2>&1
+                
+                # Задаём права на каталог
+                chown www-data:www-data -R /var/enginegp/
+
+                # Установка и настрока composer
+                curl -o composer-setup.php https://getcomposer.org/installer >> "$(dirname "$0")/enginegp_install.log" 2>&1
+                php composer-setup.php --install-dir=/usr/local/bin --filename=composer >> "$(dirname "$0")/enginegp_install.log" 2>&1
+                cd /var/enginegp && sudo composer install --no-interaction && cd >> "$(dirname "$0")/enginegp_install.log" 2>&1
             fi
         fi
 
