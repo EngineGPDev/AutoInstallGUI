@@ -25,7 +25,7 @@ install_enginegp() {
     packages_one=(lsb-release software-properties-common net-tools curl ufw memcached zip unzip bc cron)
     
     # Список пакетов #2 для установки
-    packages_two=(php$php_ver php$php_ver-common php$php_ver-cli php$php_ver-memcache php$php_ver-memcached php$php_ver-mysqli php$php_ver-xml php$php_ver-mbstring php$php_ver-gd php$php_ver-imagick php$php_ver-zip php$php_ver-curl php$php_ver-ssh2 php$php_ver-xml php$php_ver-fpm apache2 apache2-utils nginx mariadb-server)
+    packages_two=(php$php_ver php$php_ver-common php$php_ver-cli php$php_ver-memcache php$php_ver-memcached php$php_ver-mysqli php$php_ver-xml php$php_ver-mbstring php$php_ver-gd php$php_ver-imagick php$php_ver-zip php$php_ver-curl php$php_ver-ssh2 php$php_ver-xml php$php_ver-fpm apache2 libapache2-mod-fcgid nginx mariadb-server)
     
     # Итоговый список пакетов для установки
     packages=( "${packages_one[@]}" "${packages_two[@]}" )
@@ -35,16 +35,6 @@ install_enginegp() {
 
     # Источник EngineGP
     enginegp_url="https://github.com/EngineGPDev/EngineGP/archive/refs/tags/$enginegp_ver.zip"
-
-    # Конфигурация apache для заглушки
-    apache_default="
-    <VirtualHost *:8080>
-        ServerAdmin webmaster@localhost
-        DocumentRoot /var/www/html
-        ErrorLog \${APACHE_LOG_DIR}/error.log
-        CustomLog \${APACHE_LOG_DIR}/access.log combined
-    </VirtualHost>
-    "
 
     apache_ports="
     Listen 8080
@@ -74,6 +64,9 @@ install_enginegp() {
              AllowOverride All
              Require all granted
         </Directory>
+        <FilesMatch \.php$>
+            SetHandler "proxy:unix:/run/php/php$php_ver-fpm.sock\|fcgi://localhost"
+        </FilesMatch>
     </VirtualHost>
     "
 
@@ -163,6 +156,7 @@ install_enginegp() {
                 sudo a2enmod rewrite >> "$(dirname "$0")/enginegp_install.log" 2>&1
 
                 # Включаем PHP-FPM по умолчанию
+                sudo a2enmod fcgid >> "$(dirname "$0")/enginegp_install.log" 2>&1
                 sudo a2enmod proxy_fcgi setenvif >> "$(dirname "$0")/enginegp_install.log" 2>&1
 
                 # Включаем PHP-FPM в apache2
@@ -192,35 +186,6 @@ install_enginegp() {
                 sudo systemctl restart nginx >> "$(dirname "$0")/enginegp_install.log" 2>&1
             fi
         fi
-
-        : '
-        # Устанавливаем phpMyAdmin
-        if command -v mysql >> "$(dirname "$0")/enginegp_install.log" 2>&1; then
-            # Задаём переменные
-            pma_config="/usr/share/phpmyadmin/config.inc.php"
-            pma_blowfish=$(pwgen 32)
-            pma_user="Administrator"
-            pma_pass=$(pwgen 8)
-
-            sudo mariadb <<EOF >> "$(dirname "$0")/enginegp_install.log" 2>&1
-            GRANT ALL ON *.* TO '$pma_user'@'localhost' IDENTIFIED BY '$pma_pass' WITH GRANT OPTION;
-            FLUSH PRIVILEGES;
-            EOF
-
-            # Скачиваем phpMyAdmin с оффициального сайта и подготавливаем к конфигурированию
-            curl -O https://files.phpmyadmin.net/phpMyAdmin/5.2.1/phpMyAdmin-5.2.1-all-languages.tar.gz >> "$(dirname "$0")/enginegp_install.log" 2>&1
-            tar xvf phpMyAdmin-5.2.1-all-languages.tar.gz >> "$(dirname "$0")/enginegp_install.log" 2>&1
-            sudo mv phpMyAdmin-5.2.1-all-languages /usr/share/phpmyadmin >> "$(dirname "$0")/enginegp_install.log" 2>&1
-            sudo cp /var/enginegp/install/config.inc.php /usr/share/phpMyAdmin/
-
-            # Настраиваем файл конфигурации phpMyAdmin
-            sed -i "s/'pma_blowfish'/'$pma_blowfish'/g" $pma_config >> "$(dirname "$0")/enginegp_install.log" 2>&1
-            sed -i "s/'pma_user'/'$pma_user'/g" $pma_config >> "$(dirname "$0")/enginegp_install.log" 2>&1
-            sed -i "s/'pma_pass'/'$pma_pass'/g" $pma_config >> "$(dirname "$0")/enginegp_install.log" 2>&1
-
-
-        fi
-        '
 
         # Устанавливаем панель
         if [ ! -d /var/enginegp/ ]; then
